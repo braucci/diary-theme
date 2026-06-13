@@ -1,0 +1,627 @@
+/*
+Theme Name: Diary
+Theme URI: https://github.com/braucci/diary-theme
+Author: Biagio Raucci
+Author URI: https://www.raucci.net/
+Description: Tema WordPress autonomo per blog letterari. Layout minimal a colonna singola, tipografia EB Garamond, testo giustificato coerente tra home e articolo, header blu con gradiente. Pensato per la lettura lunga. Nessuna dipendenza da temi padre.
+Version: 1.0.2
+Requires at least: 6.0
+Tested up to: 6.8
+Requires PHP: 7.4
+License: GNU General Public License v2 or later
+License URI: http://www.gnu.org/licenses/gpl-2.0.html
+Text Domain: diary
+Tags: blog, one-column, custom-menu, featured-images, threaded-comments, translation-ready, editor-style
+*/
+
+/* =====================================================
+   VARIABILI
+   ===================================================== */
+:root {
+    --diary-blue-top:    #6aa3d4;
+    --diary-blue-bottom: #2f6aa3;
+    --diary-navbar:      #2b2f33;
+    --diary-navbar-link: #f4f4f4;
+    --diary-text:        #1a1a1a;
+    --diary-text-soft:   rgba(26, 26, 26, 0.65);
+    --diary-link:        #2f6aa3;
+    --diary-accent:      #d99a2b;
+    --diary-rule:        rgba(0, 0, 0, 0.08);
+    --diary-bg:          #ffffff;
+
+    --diary-serif: "EB Garamond", Garamond, "Adobe Garamond Pro", Georgia, "Times New Roman", serif;
+    --diary-sans:  "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+    --diary-content-width: 820px;
+    --diary-wide-width:    1100px;
+
+    /* UNICA fonte di verità per la dimensione del corpo:
+       home e single usano questa stessa variabile,
+       così non c'è alcun "salto" tra le viste. */
+    --diary-font-body:  1.3rem;
+    --diary-line-body:  1.75;
+}
+
+/* =====================================================
+   RESET LEGGERO
+   ===================================================== */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { font-size: 100%; -webkit-text-size-adjust: 100%; }
+
+body {
+    margin: 0;
+    background: var(--diary-bg);
+    color: var(--diary-text);
+    font-family: var(--diary-serif);
+    line-height: var(--diary-line-body);
+    font-feature-settings: "kern" 1, "liga" 1, "onum" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+img { max-width: 100%; height: auto; }
+
+a {
+    color: var(--diary-link);
+    text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* =====================================================
+   HEADER — blu con gradiente (stile Kubrick)
+   ===================================================== */
+.site-header {
+    background: linear-gradient(180deg, var(--diary-blue-top) 0%, var(--diary-blue-bottom) 100%);
+    color: #fff;
+    text-align: center;
+    padding: 3.5rem 1.5rem 2.5rem;
+}
+
+.site-title {
+    margin: 0;
+    font-family: var(--diary-serif);
+    font-size: 4rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+}
+.site-title a {
+    color: #fff;
+    text-decoration: none;
+}
+.site-title a:hover { text-decoration: none; opacity: 0.95; }
+
+.site-description {
+    margin: 0.5rem 0 0;
+    font-family: var(--diary-sans);
+    font-size: 0.8rem;
+    font-weight: 400;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    opacity: 0.9;
+}
+
+/* =====================================================
+   NAVIGAZIONE — barra scura sotto l'header
+   ===================================================== */
+.main-navigation {
+    background: var(--diary-navbar);
+}
+.main-navigation .menu-wrap {
+    max-width: var(--diary-wide-width);
+    margin: 0 auto;
+    padding: 0 1.5rem;
+}
+.main-navigation ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.main-navigation li { margin: 0; }
+.main-navigation a {
+    display: block;
+    padding: 1rem 1.4rem;
+    color: var(--diary-navbar-link);
+    font-family: var(--diary-sans);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+.main-navigation a:hover,
+.main-navigation .current-menu-item > a {
+    background: rgba(255, 255, 255, 0.08);
+    text-decoration: none;
+}
+
+/* Toggle menu mobile */
+.menu-toggle {
+    display: none;
+    width: 100%;
+    background: var(--diary-navbar);
+    color: var(--diary-navbar-link);
+    border: 0;
+    padding: 0.9rem;
+    font-family: var(--diary-sans);
+    font-size: 0.85rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+
+/* =====================================================
+   LAYOUT CONTENUTO — colonna singola centrata
+   ===================================================== */
+.site-main {
+    max-width: var(--diary-content-width);
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+}
+
+/* =====================================================
+   ARTICOLO — stili CONDIVISI home + single
+   Questa è la chiave: nessun prefisso .single o .home.
+   Le stesse regole valgono ovunque, quindi il passaggio
+   da home ad articolo non cambia font né allineamento.
+   ===================================================== */
+.entry {
+    margin: 0 0 4rem;
+    padding-bottom: 3rem;
+    border-bottom: 1px solid var(--diary-rule);
+}
+.entry:last-child {
+    border-bottom: 0;
+    margin-bottom: 0;
+}
+
+.entry-title {
+    font-family: var(--diary-serif);
+    font-size: 2.6rem;
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 0 0.75rem;
+    text-align: left;
+}
+.entry-title a {
+    color: var(--diary-text);
+    text-decoration: none;
+}
+.entry-title a:hover { color: var(--diary-link); text-decoration: none; }
+
+.entry-meta {
+    font-family: var(--diary-sans);
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--diary-text-soft);
+    margin-bottom: 1.75rem;
+}
+.entry-meta a { color: var(--diary-text-soft); }
+.entry-meta .sep { margin: 0 0.5rem; opacity: 0.5; }
+
+.entry-thumbnail {
+    margin: 0 0 2rem;
+}
+.entry-thumbnail img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 2px;
+}
+
+/* CORPO DEL POST — font e giustificazione IDENTICI
+   in home e nell'articolo completo. */
+.entry-content,
+.entry-summary {
+    font-family: var(--diary-serif);
+    font-size: var(--diary-font-body);
+    line-height: var(--diary-line-body);
+    font-weight: 400;
+    color: var(--diary-text);
+}
+
+.entry-content p,
+.entry-content li,
+.entry-summary p {
+    text-align: justify;
+    text-justify: inter-word;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    -ms-hyphens: auto;
+    margin: 0 0 1.4rem;
+}
+
+/* Eccezioni alla giustificazione */
+.entry-content h1,
+.entry-content h2,
+.entry-content h3,
+.entry-content h4,
+.entry-content h5,
+.entry-content h6,
+.entry-content figcaption,
+.entry-content blockquote,
+.entry-content blockquote p,
+.entry-content pre,
+.entry-content code,
+.entry-summary .read-more {
+    text-align: left;
+    hyphens: none;
+}
+
+.entry-content h2 { font-size: 2rem; margin: 2.5rem 0 1rem; line-height: 1.2; }
+.entry-content h3 { font-size: 1.6rem; margin: 2rem 0 0.85rem; line-height: 1.25; }
+.entry-content h4 { font-size: 1.35rem; margin: 1.75rem 0 0.75rem; }
+
+.entry-content em, .entry-content i { font-style: italic; }
+.entry-content strong, .entry-content b { font-weight: 700; }
+
+.entry-content a {
+    color: var(--diary-link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+}
+
+.entry-content blockquote {
+    font-style: italic;
+    font-size: 1.2rem;
+    border-left: 3px solid var(--diary-rule);
+    padding-left: 1.25rem;
+    margin: 2rem 0;
+    color: var(--diary-text-soft);
+}
+
+.entry-content img {
+    border-radius: 2px;
+    margin: 1.5rem 0;
+}
+
+.entry-content pre {
+    background: #1e1e1e;
+    color: #f4f4f4;
+    padding: 1.25rem;
+    border-radius: 4px;
+    overflow-x: auto;
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+.entry-content code {
+    font-family: "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.9em;
+    background: rgba(0, 0, 0, 0.05);
+    padding: 0.1em 0.35em;
+    border-radius: 3px;
+}
+.entry-content pre code { background: none; padding: 0; }
+
+/* "Continua a leggere" sotto l'estratto in home */
+.read-more {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-family: var(--diary-sans);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--diary-accent);
+    text-decoration: none;
+}
+.read-more:hover { text-decoration: underline; }
+
+/* =====================================================
+   PAGINAZIONE
+   ===================================================== */
+.diary-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    font-family: var(--diary-sans);
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+}
+.diary-pagination a,
+.diary-pagination .page-numbers {
+    color: var(--diary-link);
+    text-decoration: none;
+    padding: 0.4rem 0.7rem;
+}
+.diary-pagination .current {
+    color: var(--diary-text);
+    font-weight: 700;
+}
+
+/* =====================================================
+   COMMENTI
+   ===================================================== */
+.comments-area {
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--diary-rule);
+}
+.comments-title, .comment-reply-title {
+    font-family: var(--diary-serif);
+    font-size: 1.6rem;
+    margin-bottom: 1.5rem;
+}
+.comment-list { list-style: none; padding: 0; margin: 0; }
+.comment-body {
+    padding: 1.25rem 0;
+    border-bottom: 1px solid var(--diary-rule);
+}
+.comment-author { font-family: var(--diary-sans); font-size: 0.9rem; }
+.comment-meta { font-size: 0.78rem; color: var(--diary-text-soft); }
+.comment-content { margin-top: 0.5rem; }
+.comment-content p { text-align: justify; hyphens: auto; }
+
+.comment-form input[type="text"],
+.comment-form input[type="email"],
+.comment-form input[type="url"],
+.comment-form textarea {
+    width: 100%;
+    padding: 0.7rem;
+    border: 1px solid var(--diary-rule);
+    border-radius: 3px;
+    font-family: var(--diary-serif);
+    font-size: 1rem;
+    margin-bottom: 1rem;
+}
+.comment-form .submit,
+.diary-button {
+    background: var(--diary-blue-bottom);
+    color: #fff;
+    border: 0;
+    padding: 0.7rem 1.5rem;
+    border-radius: 3px;
+    font-family: var(--diary-sans);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+}
+.comment-form .submit:hover,
+.diary-button:hover { background: var(--diary-blue-top); }
+
+/* =====================================================
+   PAGINA 404 / RICERCA
+   ===================================================== */
+.page-title {
+    font-family: var(--diary-serif);
+    font-size: 2.2rem;
+    margin-bottom: 1.5rem;
+}
+.search-form {
+    display: flex;
+    gap: 0.5rem;
+    margin: 1.5rem 0;
+}
+.search-form .search-field {
+    flex: 1;
+    padding: 0.7rem;
+    border: 1px solid var(--diary-rule);
+    border-radius: 3px;
+    font-family: var(--diary-serif);
+    font-size: 1rem;
+}
+
+/* =====================================================
+   FOOTER
+   ===================================================== */
+.site-footer {
+    border-top: 1px solid var(--diary-rule);
+    margin-top: 4rem;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    font-family: var(--diary-sans);
+}
+.site-footer .footer-widgets {
+    max-width: var(--diary-wide-width);
+    margin: 0 auto 2rem;
+    display: grid;
+    gap: 2rem;
+}
+@media (min-width: 768px) {
+    .site-footer .footer-widgets.cols-2 { grid-template-columns: repeat(2, 1fr); }
+    .site-footer .footer-widgets.cols-3 { grid-template-columns: repeat(3, 1fr); }
+}
+.site-footer .copyright {
+    font-size: 0.85rem;
+    color: var(--diary-text-soft);
+}
+.site-footer .customized-by {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--diary-text-soft);
+}
+.site-footer .customized-by a,
+.site-footer .copyright a {
+    color: inherit;
+    border-bottom: 1px dotted currentColor;
+    text-decoration: none;
+}
+
+/* Citazione Squallor */
+.squallor-quote {
+    margin-top: 0.75rem;
+}
+.squallor-quote p {
+    margin: 0;
+    font-family: var(--diary-serif);
+    font-style: italic;
+    font-size: 0.95rem;
+    color: var(--diary-text-soft);
+}
+.squallor-quote a {
+    color: inherit;
+    text-decoration: none;
+    border-bottom: 1px dotted currentColor;
+}
+.squallor-quote a:hover { color: var(--diary-link); }
+
+/* =====================================================
+   BACK TO TOP
+   ===================================================== */
+#backToTop {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--diary-blue-bottom);
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    opacity: 0.85;
+    z-index: 999;
+}
+#backToTop:hover { opacity: 1; }
+
+/* =====================================================
+   ACCESSIBILITÀ
+   ===================================================== */
+.screen-reader-text {
+    position: absolute !important;
+    clip: rect(1px, 1px, 1px, 1px);
+    width: 1px; height: 1px;
+    overflow: hidden;
+}
+.skip-link {
+    position: absolute;
+    left: -9999px;
+    background: #fff;
+    padding: 0.5rem 1rem;
+    z-index: 10000;
+}
+.skip-link:focus { left: 1rem; top: 1rem; }
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+@media (max-width: 900px) {
+    :root { --diary-font-body: 1.2rem; }
+    .site-title { font-size: 3rem; }
+    .entry-title { font-size: 2.1rem; }
+}
+
+@media (max-width: 600px) {
+    :root { --diary-font-body: 1.1rem; --diary-line-body: 1.65; }
+    .site-header { padding: 2.5rem 1rem 2rem; }
+    .site-title { font-size: 2.4rem; }
+    .entry-title { font-size: 1.8rem; }
+    .entry-content h2 { font-size: 1.6rem; }
+
+    .menu-toggle { display: block; }
+    .main-navigation ul {
+        display: none;
+        flex-direction: column;
+    }
+    .main-navigation.toggled ul { display: flex; }
+    .main-navigation a { text-align: center; }
+}
+
+@media (max-width: 380px) {
+    .site-title { font-size: 2rem; }
+}
+
+
+/* =====================================================
+   FOOTER WIDGETS — contenuto centrato
+   Calendario, ricerca e altri widget centrati
+   orizzontalmente nella pagina.
+   ===================================================== */
+.site-footer .footer-widgets {
+    text-align: center;
+}
+
+.site-footer .widget {
+    margin: 0 auto 1.5rem;
+    max-width: 480px;
+}
+
+.site-footer .widget-title {
+    text-align: center;
+    font-family: var(--diary-sans);
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+}
+
+/* Calendario centrato */
+.site-footer .wp-calendar-table {
+    margin: 0 auto;
+}
+.site-footer .wp-calendar-nav {
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+/* Form di ricerca centrato */
+.site-footer .search-form {
+    justify-content: center;
+    max-width: 480px;
+    margin: 0 auto;
+}
+
+/* Liste dei widget (archivi, categorie, articoli recenti) centrate */
+.site-footer .widget ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.site-footer .widget ul li {
+    margin: 0.3rem 0;
+}
+
+
+/* =====================================================
+   FOOTER WIDGETS — correzione centratura (v1.0.2)
+   Con una sola widget area attiva, il contenuto va
+   centrato rispetto all'intera pagina, non a sinistra.
+   ===================================================== */
+.site-footer .footer-widgets.cols-1 {
+    display: block;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.site-footer .footer-widgets.cols-1 .footer-col {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Il blocco interno di ciascun widget centrato */
+.site-footer .footer-col > .widget {
+    width: 100%;
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Citazione Squallor — forza la centratura assoluta */
+.site-footer .squallor-quote {
+    width: 100%;
+    text-align: center;
+}
+.site-footer .squallor-quote p {
+    text-align: center !important;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Anche copyright e attribuzione restano centrati */
+.site-footer .copyright,
+.site-footer .customized-by {
+    text-align: center;
+}

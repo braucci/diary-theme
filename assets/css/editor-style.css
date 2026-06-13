@@ -1,0 +1,13 @@
+/* Diary — stile editor Gutenberg, coerente col front-end */
+.editor-styles-wrapper {
+    font-family: "EB Garamond", Garamond, Georgia, serif;
+    font-size: 1.3rem;
+    line-height: 1.75;
+}
+.editor-styles-wrapper p { text-align: justify; }
+.editor-styles-wrapper h1,
+.editor-styles-wrapper h2,
+.editor-styles-wrapper h3 {
+    font-family: "EB Garamond", Garamond, Georgia, serif;
+    font-weight: 700;
+}
