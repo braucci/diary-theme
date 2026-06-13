@@ -4,7 +4,7 @@ Theme URI: https://github.com/braucci/diary-theme
 Author: Biagio Raucci
 Author URI: https://www.raucci.net/
 Description: Tema WordPress autonomo per blog letterari. Layout minimal a colonna singola, tipografia EB Garamond, testo giustificato coerente tra home e articolo, header blu con gradiente. Pensato per la lettura lunga. Nessuna dipendenza da temi padre.
-Version: 1.0.2
+Version: 1.0.3
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -624,4 +624,41 @@ a:hover { text-decoration: underline; }
 .site-footer .copyright,
 .site-footer .customized-by {
     text-align: center;
+}
+
+
+/* =====================================================
+   IMMAGINI NEI POST — angoli arrotondati (v1.0.3)
+   Copre immagine in evidenza, immagini inline, blocchi
+   Gutenberg, gallery e caption, sia in home che nel
+   singolo articolo.
+   ===================================================== */
+.entry-thumbnail img,
+.entry-content img,
+.entry-summary img,
+.entry-content .wp-block-image img,
+.entry-content figure img,
+.entry-content .wp-block-gallery img,
+.entry-content .gallery-item img {
+    border-radius: 10px;
+}
+
+/* Caption: arrotonda anche il contenitore figure con sfondo */
+.entry-content figure.wp-block-image {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+/* Immagini circolari opzionali: classe .is-style-rounded di Gutenberg */
+.entry-content .wp-block-image.is-style-rounded img {
+    border-radius: 50%;
+}
+
+/* Su mobile leggermente meno arrotondate per non sprecare bordo */
+@media (max-width: 600px) {
+    .entry-thumbnail img,
+    .entry-content img,
+    .entry-summary img {
+        border-radius: 8px;
+    }
 }

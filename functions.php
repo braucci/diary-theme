@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('DIARY_VERSION')) {
-    define('DIARY_VERSION', '1.0.2');
+    define('DIARY_VERSION', '1.0.3');
 }
 
 /* ============================================================
