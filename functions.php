@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('DIARY_VERSION')) {
-    define('DIARY_VERSION', '1.0.3');
+    define('DIARY_VERSION', '1.1.0');
 }
 
 /* ============================================================
@@ -264,3 +264,43 @@ function diary_pingback_header() {
     }
 }
 add_action('wp_head', 'diary_pingback_header');
+
+
+/* ============================================================
+ * 12) Opzioni del tema nel Customizer
+ *     "Diary: Opzioni Blog" → scelta visualizzazione home
+ * ============================================================ */
+function diary_customize_register($wp_customize) {
+
+    // Sezione dedicata
+    $wp_customize->add_section('diary_blog_options', array(
+        'title'    => __('Diary: Opzioni Blog', 'diary'),
+        'priority' => 30,
+    ));
+
+    // Impostazione: modalità di visualizzazione in home/archivi
+    $wp_customize->add_setting('diary_home_display', array(
+        'default'           => 'excerpt',
+        'sanitize_callback' => 'diary_sanitize_home_display',
+        'transport'         => 'refresh',
+    ));
+
+    $wp_customize->add_control('diary_home_display', array(
+        'label'       => __('In home e archivi mostra', 'diary'),
+        'description' => __('Scegli come appaiono i post negli elenchi. Puoi cambiare e vedere subito l\'anteprima.', 'diary'),
+        'section'     => 'diary_blog_options',
+        'type'        => 'radio',
+        'choices'     => array(
+            'excerpt' => __('Solo estratto (poche righe + "Continua a leggere")', 'diary'),
+            'full'    => __('Testo completo di ogni articolo', 'diary'),
+            'auto'    => __('Estratto se scritto a mano, altrimenti testo completo', 'diary'),
+        ),
+    ));
+}
+add_action('customize_register', 'diary_customize_register');
+
+/* Sanitizzazione del valore */
+function diary_sanitize_home_display($value) {
+    $valid = array('excerpt', 'full', 'auto');
+    return in_array($value, $valid, true) ? $value : 'excerpt';
+}
