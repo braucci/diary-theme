@@ -4,7 +4,7 @@ Theme URI: https://github.com/braucci/diary-theme
 Author: Biagio Raucci
 Author URI: https://www.raucci.net/
 Description: Tema WordPress autonomo per blog letterari. Layout minimal a colonna singola, tipografia EB Garamond, testo giustificato coerente tra home e articolo, header blu con gradiente. Pensato per la lettura lunga. Nessuna dipendenza da temi padre.
-Version: 1.1.0
+Version: 1.2.0
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -661,4 +661,165 @@ a:hover { text-decoration: underline; }
     .entry-summary img {
         border-radius: 8px;
     }
+}
+
+
+/* =====================================================
+   ARCHIVIO MENSILE (template-archivio.php) — v1.2.0
+   ===================================================== */
+.diary-archivio {
+    margin: 0 auto;
+}
+
+.archivio-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+}
+.archivio-title {
+    font-family: var(--diary-serif);
+    font-size: 2.6rem;
+    font-weight: 700;
+    margin: 0 0 0.4rem;
+}
+.archivio-sottotitolo,
+.archivio-count {
+    font-family: var(--diary-sans);
+    font-size: 0.9rem;
+    color: var(--diary-text-soft);
+    margin: 0;
+}
+.archivio-breadcrumb {
+    font-family: var(--diary-sans);
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+}
+.archivio-breadcrumb a { color: var(--diary-link); text-decoration: none; }
+.archivio-breadcrumb a:hover { text-decoration: underline; }
+
+.archivio-intro {
+    margin-bottom: 2.5rem;
+}
+
+/* ---- Indice anni/mesi ---- */
+.archivio-anno {
+    margin-bottom: 2.5rem;
+}
+.archivio-anno-title {
+    font-family: var(--diary-serif);
+    font-size: 1.8rem;
+    font-weight: 700;
+    border-bottom: 2px solid var(--diary-rule);
+    padding-bottom: 0.4rem;
+    margin: 0 0 1.25rem;
+}
+.archivio-mesi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 0.85rem;
+}
+.archivio-mese-cell {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.1rem 0.75rem;
+    border: 1px solid var(--diary-rule);
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--diary-text);
+    background: #fff;
+    transition: border-color 0.15s ease, transform 0.1s ease, box-shadow 0.15s ease;
+}
+.archivio-mese-cell:hover {
+    border-color: var(--diary-blue-bottom);
+    box-shadow: 0 2px 10px rgba(47, 106, 163, 0.12);
+    transform: translateY(-2px);
+    text-decoration: none;
+}
+.archivio-mese-nome {
+    font-family: var(--diary-serif);
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+.archivio-mese-conteggio {
+    font-family: var(--diary-sans);
+    font-size: 0.8rem;
+    color: var(--diary-text-soft);
+    margin-top: 0.25rem;
+}
+.archivio-mese-conteggio::after {
+    content: " art.";
+}
+
+/* ---- Matrice dei post del mese ---- */
+.archivio-matrice {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+}
+.archivio-card {
+    border: 1px solid var(--diary-rule);
+    border-radius: 10px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    background: #fff;
+    transition: box-shadow 0.15s ease, transform 0.1s ease;
+}
+.archivio-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.07);
+    transform: translateY(-2px);
+}
+.archivio-card-title {
+    font-family: var(--diary-serif);
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin: 0 0 0.4rem;
+}
+.archivio-card-title a {
+    color: var(--diary-text);
+    text-decoration: none;
+}
+.archivio-card-title a:hover { color: var(--diary-link); }
+.archivio-card-date {
+    font-family: var(--diary-sans);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--diary-text-soft);
+    margin: 0 0 0.85rem;
+}
+.archivio-card-excerpt {
+    font-family: var(--diary-serif);
+    font-size: 1.05rem;
+    line-height: 1.55;
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    flex-grow: 1;
+    margin-bottom: 1rem;
+}
+.archivio-card-link {
+    font-family: var(--diary-sans);
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--diary-accent);
+    text-decoration: none;
+    align-self: flex-start;
+}
+.archivio-card-link:hover { text-decoration: underline; }
+
+.archivio-vuoto {
+    text-align: center;
+    color: var(--diary-text-soft);
+    font-family: var(--diary-sans);
+    padding: 2rem 0;
+}
+
+@media (max-width: 600px) {
+    .archivio-matrice { grid-template-columns: 1fr; }
+    .archivio-title { font-size: 2rem; }
 }
