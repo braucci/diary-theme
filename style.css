@@ -4,7 +4,7 @@ Theme URI: https://github.com/braucci/diary-theme
 Author: Biagio Raucci
 Author URI: https://www.raucci.net/
 Description: Tema WordPress autonomo per blog letterari. Layout minimal a colonna singola, tipografia EB Garamond, testo giustificato coerente tra home e articolo, header blu con gradiente. Pensato per la lettura lunga. Nessuna dipendenza da temi padre.
-Version: 1.2.0
+Version: 1.4.0
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -70,18 +70,27 @@ a:hover { text-decoration: underline; }
 
 /* =====================================================
    HEADER — blu con gradiente (stile Kubrick)
+   Specificità ancorata a #masthead per resistere a
+   qualsiasi CSS esterno (plugin, page builder) che
+   tentasse di sovrascrivere l'header su pagine specifiche.
    ===================================================== */
-.site-header {
+#masthead.site-header {
     background: linear-gradient(180deg, var(--diary-blue-top) 0%, var(--diary-blue-bottom) 100%);
     color: #fff;
     text-align: center;
     padding: 3.5rem 1.5rem 2.5rem;
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
 }
 
+#masthead.site-header .site-title,
+.site-header .site-title,
 .site-title {
     margin: 0;
     font-family: var(--diary-serif);
-    font-size: 4rem;
+    /* Scalatura fluida con minimo prominente. */
+    font-size: clamp(2.8rem, 5vw + 1rem, 4rem) !important;
     font-weight: 700;
     letter-spacing: -0.01em;
     line-height: 1.05;
@@ -104,19 +113,16 @@ a:hover { text-decoration: underline; }
 
 /* =====================================================
    NAVIGAZIONE — barra scura sotto l'header
+   Struttura: nav.main-navigation > button.menu-toggle + ul#primary-menu
    ===================================================== */
 .main-navigation {
     background: var(--diary-navbar);
 }
-.main-navigation .menu-wrap {
-    max-width: var(--diary-wide-width);
-    margin: 0 auto;
-    padding: 0 1.5rem;
-}
 .main-navigation ul {
     list-style: none;
-    margin: 0;
+    margin: 0 auto;
     padding: 0;
+    max-width: var(--diary-wide-width);
     display: flex;
     justify-content: center;
     flex-wrap: wrap;
@@ -140,20 +146,34 @@ a:hover { text-decoration: underline; }
     text-decoration: none;
 }
 
-/* Toggle menu mobile */
+/* Checkbox nascosto: è il "motore" del menu mobile (pure CSS) */
+.menu-toggle-checkbox {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+/* Toggle menu mobile — la label fa da pulsante, nascosta su desktop */
 .menu-toggle {
     display: none;
     width: 100%;
     background: var(--diary-navbar);
     color: var(--diary-navbar-link);
     border: 0;
-    padding: 0.9rem;
+    padding: 0.95rem;
     font-family: var(--diary-sans);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     letter-spacing: 1.5px;
     text-transform: uppercase;
     cursor: pointer;
+    user-select: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
+.menu-toggle-icon { font-size: 1.15rem; line-height: 1; }
 
 /* =====================================================
    LAYOUT CONTENUTO — colonna singola centrata
@@ -506,31 +526,50 @@ a:hover { text-decoration: underline; }
 
 /* =====================================================
    RESPONSIVE
+   La dimensione del titolo è gestita da clamp() in modo
+   fluido, quindi qui non serve ridefinirla a soglie.
+   ===================================================== */
+
+/* =====================================================
+   MENU MOBILE — checkbox-hack puro CSS (no JavaScript)
+   Sotto i 900px (tablet e telefoni) appare l'hamburger.
+   Il menu si apre/chiude con il checkbox :checked,
+   senza dipendere da JS o cache.
    ===================================================== */
 @media (max-width: 900px) {
     :root { --diary-font-body: 1.2rem; }
-    .site-title { font-size: 3rem; }
     .entry-title { font-size: 2.1rem; }
+
+    /* Mostra la label-hamburger */
+    .menu-toggle {
+        display: flex !important;
+    }
+
+    /* Nasconde il menu a riposo */
+    .main-navigation .primary-menu-list,
+    .main-navigation ul {
+        display: none !important;
+        flex-direction: column;
+        width: 100%;
+    }
+
+    /* Lo mostra quando il checkbox è spuntato (label toccata) */
+    .menu-toggle-checkbox:checked ~ .primary-menu-list,
+    .menu-toggle-checkbox:checked ~ ul {
+        display: flex !important;
+    }
+
+    .main-navigation a {
+        text-align: center;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
 }
 
 @media (max-width: 600px) {
     :root { --diary-font-body: 1.1rem; --diary-line-body: 1.65; }
-    .site-header { padding: 2.5rem 1rem 2rem; }
-    .site-title { font-size: 2.4rem; }
+    #masthead.site-header { padding: 2.5rem 1rem 2rem; }
     .entry-title { font-size: 1.8rem; }
     .entry-content h2 { font-size: 1.6rem; }
-
-    .menu-toggle { display: block; }
-    .main-navigation ul {
-        display: none;
-        flex-direction: column;
-    }
-    .main-navigation.toggled ul { display: flex; }
-    .main-navigation a { text-align: center; }
-}
-
-@media (max-width: 380px) {
-    .site-title { font-size: 2rem; }
 }
 
 

@@ -40,15 +40,17 @@ if (!defined('ABSPATH')) exit;
     </header>
 
     <nav id="site-navigation" class="main-navigation" aria-label="<?php esc_attr_e('Menu principale', 'diary'); ?>">
-        <button class="menu-toggle" aria-controls="primary-menu" aria-expanded="false">
-            <?php esc_html_e('Menu', 'diary'); ?>
-        </button>
+        <input type="checkbox" id="diary-menu-checkbox" class="menu-toggle-checkbox" aria-hidden="true">
+        <label for="diary-menu-checkbox" class="menu-toggle">
+            <span class="menu-toggle-icon" aria-hidden="true">&#9776;</span>
+            <span class="menu-toggle-text"><?php esc_html_e('Menu', 'diary'); ?></span>
+        </label>
         <?php
         wp_nav_menu(array(
             'theme_location' => 'primary',
             'menu_id'        => 'primary-menu',
-            'container'      => 'div',
-            'container_class'=> 'menu-wrap',
+            'menu_class'     => 'primary-menu-list',
+            'container'      => false,
             'fallback_cb'    => 'diary_primary_menu_fallback',
             'depth'          => 2,
         ));

@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('DIARY_VERSION')) {
-    define('DIARY_VERSION', '1.2.0');
+    define('DIARY_VERSION', '1.4.0');
 }
 
 /* ============================================================
@@ -248,10 +248,10 @@ function diary_footer_quote() {
  * 10) Fallback menu se nessun menu assegnato
  * ============================================================ */
 function diary_primary_menu_fallback() {
-    echo '<div class="menu-wrap"><ul>';
+    echo '<ul id="primary-menu" class="primary-menu-list">';
     echo '<li><a href="' . esc_url(home_url('/')) . '">' . esc_html__('Home', 'diary') . '</a></li>';
     wp_list_pages(array('title_li' => '', 'depth' => 1));
-    echo '</ul></div>';
+    echo '</ul>';
 }
 
 
