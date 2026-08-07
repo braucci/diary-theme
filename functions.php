@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('DIARY_VERSION')) {
-    define('DIARY_VERSION', '1.4.0');
+    define('DIARY_VERSION', '1.6.3');
 }
 
 /* ============================================================
@@ -304,3 +304,259 @@ function diary_sanitize_home_display($value) {
     $valid = array('excerpt', 'full', 'auto');
     return in_array($value, $valid, true) ? $value : 'excerpt';
 }
+
+
+/* ============================================================
+ * 14) Note pubbliche del Planner ("diario delle lezioni")
+ *     - Tipo di contenuto "Nota" con pagina pubblica dedicata.
+ *     - Inserimento ed eliminazione rapidi dal calendario,
+ *       consentiti SOLO all'autore autorizzato.
+ * ============================================================ */
+
+/**
+ * Chi può gestire le note.
+ * Default: chi può modificare gli articoli (autore/editore/amministratore).
+ * Restringibile via filtro, es. add_filter('diary_nota_capability', fn() => 'manage_options');
+ */
+function diary_nota_puo_gestire() {
+    return is_user_logged_in()
+        && current_user_can(apply_filters('diary_nota_capability', 'edit_posts'));
+}
+
+/**
+ * URL della pagina che usa il template del Planner.
+ * Serve, ad esempio, al link "Torna al Planner" dalla pagina di una nota.
+ * Il risultato è messo in cache per la durata della richiesta.
+ */
+function diary_get_planner_url() {
+    static $cache = null;
+    if ($cache !== null) {
+        return $cache;
+    }
+    $pagine = get_posts(array(
+        'post_type'      => 'page',
+        'posts_per_page' => 1,
+        'fields'         => 'ids',
+        'meta_key'       => '_wp_page_template',
+        'meta_value'     => 'template-planner.php',
+        'no_found_rows'  => true,
+    ));
+    $cache = !empty($pagine) ? get_permalink($pagine[0]) : home_url('/');
+    return $cache;
+}
+
+/* Registrazione del tipo di contenuto "Nota" */
+function diary_registra_cpt_nota() {
+
+    $labels = array(
+        'name'               => __('Note', 'diary'),
+        'singular_name'      => __('Nota', 'diary'),
+        'menu_name'          => __('Note Planner', 'diary'),
+        'add_new'            => __('Aggiungi nota', 'diary'),
+        'add_new_item'       => __('Aggiungi nuova nota', 'diary'),
+        'edit_item'          => __('Modifica nota', 'diary'),
+        'new_item'           => __('Nuova nota', 'diary'),
+        'view_item'          => __('Vedi nota', 'diary'),
+        'search_items'       => __('Cerca note', 'diary'),
+        'not_found'          => __('Nessuna nota trovata', 'diary'),
+        'not_found_in_trash' => __('Nessuna nota nel cestino', 'diary'),
+        'all_items'          => __('Tutte le note', 'diary'),
+    );
+
+    register_post_type('diary_nota', array(
+        'labels'             => $labels,
+        'public'             => true,           // pagina pubblica dedicata
+        'has_archive'        => false,          // l'archivio è il Planner stesso
+        'publicly_queryable' => true,
+        'show_in_rest'       => true,           // editor a blocchi per estendere il testo
+        'menu_icon'          => 'dashicons-calendar-alt',
+        'menu_position'      => 5,
+        'supports'           => array('title', 'editor', 'thumbnail'),
+        'rewrite'            => array('slug' => 'nota', 'with_front' => false),
+    ));
+}
+add_action('init', 'diary_registra_cpt_nota');
+
+/**
+ * Rigenerazione una-tantum delle regole di rewrite dopo il deploy,
+ * così le pagine /nota/... non danno 404 senza dover risalvare i permalink.
+ */
+function diary_nota_flush_una_tantum() {
+    if (get_option('diary_nota_rewrite_flushed') !== '1') {
+        flush_rewrite_rules();
+        update_option('diary_nota_rewrite_flushed', '1');
+    }
+}
+add_action('init', 'diary_nota_flush_una_tantum', 20);
+
+/**
+ * Inserimento rapido di una nota dal calendario.
+ * Schema Post/Redirect/Get: dopo il POST si reindirizza, per evitare
+ * il reinvio del modulo con il refresh della pagina.
+ */
+function diary_gestisci_invio_nota() {
+
+    if (empty($_POST['diary_nota_submit'])) {
+        return;
+    }
+
+    // 1) Solo l'autore autorizzato
+    if (!diary_nota_puo_gestire()) {
+        return;
+    }
+
+    // 2) Verifica del token anti-CSRF
+    if (!isset($_POST['diary_nota_nonce'])
+        || !wp_verify_nonce($_POST['diary_nota_nonce'], 'diary_nota_add')) {
+        return;
+    }
+
+    $testo  = isset($_POST['diary_nota_testo'])  ? sanitize_text_field(wp_unslash($_POST['diary_nota_testo'])) : '';
+    $anno   = isset($_POST['diary_nota_anno'])   ? absint($_POST['diary_nota_anno'])   : 0;
+    $mese   = isset($_POST['diary_nota_mese'])   ? absint($_POST['diary_nota_mese'])   : 0;
+    $giorno = isset($_POST['diary_nota_giorno']) ? absint($_POST['diary_nota_giorno']) : 0;
+
+    // 3) Testo non vuoto e data valida (checkdate: mese, giorno, anno)
+    if ($testo !== '' && checkdate($mese, $giorno, $anno)) {
+
+        // IMPORTANTE: la nota viene pubblicata SUBITO (data di creazione = adesso).
+        // Il giorno del calendario a cui si riferisce è salvato come metadato
+        // '_diary_nota_data' (YYYY-MM-DD). In questo modo lo stato resta sempre
+        // 'publish': se usassimo post_date sul giorno scelto, una data futura
+        // farebbe passare WordPress allo stato 'future' (programmato) e la nota
+        // scomparirebbe dalla vista — impedendo la pianificazione in avanti.
+        $giorno_iso = sprintf('%04d-%02d-%02d', $anno, $mese, $giorno);
+
+        $nuovo_id = wp_insert_post(array(
+            'post_type'   => 'diary_nota',
+            'post_status' => 'publish',
+            'post_title'  => $testo,
+        ));
+
+        if ($nuovo_id && !is_wp_error($nuovo_id)) {
+            update_post_meta($nuovo_id, '_diary_nota_data', $giorno_iso);
+        }
+    }
+
+    // 4) Ritorno alla stessa vista mese/anno
+    $base = isset($_POST['diary_nota_planner_url'])
+        ? esc_url_raw(wp_unslash($_POST['diary_nota_planner_url']))
+        : home_url('/');
+    $redirect = add_query_arg(array('pl_anno' => $anno, 'pl_mese' => $mese), $base);
+    wp_safe_redirect($redirect);
+    exit;
+}
+add_action('template_redirect', 'diary_gestisci_invio_nota');
+
+/**
+ * Eliminazione di una nota dal calendario.
+ * La nota viene spostata nel cestino (recuperabile), non cancellata
+ * definitivamente: una svista si annulla in un clic dalla Bacheca.
+ */
+function diary_gestisci_elimina_nota() {
+
+    if (empty($_GET['diary_del_nota'])) {
+        return;
+    }
+
+    $id = absint($_GET['diary_del_nota']);
+    if (!$id) {
+        return;
+    }
+
+    if (!diary_nota_puo_gestire()) {
+        return;
+    }
+
+    if (!isset($_GET['_wpnonce'])
+        || !wp_verify_nonce($_GET['_wpnonce'], 'diary_del_nota_' . $id)) {
+        return;
+    }
+
+    $post = get_post($id);
+    if ($post && $post->post_type === 'diary_nota') {
+        wp_trash_post($id);
+    }
+
+    $ref = wp_get_referer();
+    wp_safe_redirect($ref ? $ref : home_url('/'));
+    exit;
+}
+add_action('template_redirect', 'diary_gestisci_elimina_nota');
+
+/**
+ * Modifica rapida del testo di una nota dal calendario (PRG).
+ * Cambia solo il titolo (la riga breve); il corpo esteso si modifica
+ * dalla Bacheca. Il giorno di riferimento (metadato) resta invariato.
+ */
+function diary_gestisci_modifica_nota() {
+
+    if (empty($_POST['diary_nota_edit_submit'])) {
+        return;
+    }
+
+    if (!diary_nota_puo_gestire()) {
+        return;
+    }
+
+    if (!isset($_POST['diary_nota_nonce'])
+        || !wp_verify_nonce($_POST['diary_nota_nonce'], 'diary_nota_edit')) {
+        return;
+    }
+
+    $id    = isset($_POST['diary_nota_id'])    ? absint($_POST['diary_nota_id']) : 0;
+    $testo = isset($_POST['diary_nota_testo']) ? sanitize_text_field(wp_unslash($_POST['diary_nota_testo'])) : '';
+
+    if ($id && $testo !== '') {
+        $post = get_post($id);
+        if ($post && $post->post_type === 'diary_nota') {
+            wp_update_post(array(
+                'ID'         => $id,
+                'post_title' => $testo,
+            ));
+        }
+    }
+
+    $anno = isset($_POST['diary_nota_anno']) ? absint($_POST['diary_nota_anno']) : 0;
+    $mese = isset($_POST['diary_nota_mese']) ? absint($_POST['diary_nota_mese']) : 0;
+    $base = isset($_POST['diary_nota_planner_url'])
+        ? esc_url_raw(wp_unslash($_POST['diary_nota_planner_url']))
+        : home_url('/');
+    wp_safe_redirect(add_query_arg(array('pl_anno' => $anno, 'pl_mese' => $mese), $base));
+    exit;
+}
+add_action('template_redirect', 'diary_gestisci_modifica_nota');
+
+
+/* ============================================================
+ * 13) Reindirizzamento voce di menu
+ *     "Scienze e tecnologie delle costruzioni aeronautiche"
+ *     verso la web-app esterna su GitHub Pages.
+ * ============================================================ */
+function diary_reindirizza_voce_menu($items, $args) {
+
+    // URL della pagina interna da sostituire (identificata per slug)
+    $slug_da_sostituire = 'scienze-e-tecnologie-delle-costruzioni-aeronautiche';
+
+    // Nuova destinazione esterna
+    $url_esterno = 'https://braucci.github.io/SCSI/';
+
+    foreach ($items as $item) {
+
+        // Corrispondenza per URL (slug della pagina interna)
+        $per_url = (false !== strpos($item->url, $slug_da_sostituire));
+
+        // Corrispondenza di riserva per titolo, nel caso lo slug cambi
+        $per_titolo = (false !== stripos($item->title, 'Scienze e tecnologie delle costruzioni aeronautiche'));
+
+        if ($per_url || $per_titolo) {
+            $item->url = $url_esterno;
+            // La web-app si apre in una nuova scheda in sicurezza
+            $item->target = '_blank';
+            $item->xfn    = 'noopener noreferrer';
+        }
+    }
+
+    return $items;
+}
+add_filter('wp_nav_menu_objects', 'diary_reindirizza_voce_menu', 10, 2);

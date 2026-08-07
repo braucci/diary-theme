@@ -52,6 +52,10 @@ $diary_has_footer_widgets = is_active_sidebar('footer-1') || is_active_sidebar('
                 '<a href="https://www.raucci.net/" rel="author">B. Raucci</a>'
             );
             ?>
+            <span class="footer-sep">&middot;</span>
+            <a class="footer-admin-link" href="<?php echo esc_url(admin_url()); ?>" rel="nofollow">
+                <?php esc_html_e('Amministra', 'diary'); ?>
+            </a>
         </div>
 
         <?php diary_footer_quote(); ?>

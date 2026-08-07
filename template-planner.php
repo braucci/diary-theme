@@ -1,0 +1,302 @@
+<?php
+/**
+ * Template Name: Planner Mensile
+ *
+ * Vista a calendario: una matrice con i giorni del mese; in ogni
+ * cella i titoli dei post pubblicati quel giorno. In alto: selettore
+ * mese/anno e frecce per scorrere un mese alla volta. Si apre sul
+ * mese/anno corrente.
+ *
+ * Assegnare questo template a una pagina (es. "Planner").
+ * Parametri: ?pl_anno=YYYY&pl_mese=MM
+ *
+ * @package Diary
+ */
+if (!defined('ABSPATH')) exit;
+
+get_header();
+
+// --- Mese/anno correnti come default, sovrascrivibili da querystring ---
+$oggi_ts   = current_time('timestamp');
+$anno_ora  = (int) date('Y', $oggi_ts);
+$mese_ora  = (int) date('n', $oggi_ts);
+$giorno_ora = (int) date('j', $oggi_ts);
+
+$pl_anno = isset($_GET['pl_anno']) ? absint($_GET['pl_anno']) : $anno_ora;
+$pl_mese = isset($_GET['pl_mese']) ? absint($_GET['pl_mese']) : $mese_ora;
+if ($pl_mese < 1 || $pl_mese > 12) $pl_mese = $mese_ora;
+if ($pl_anno < 1970 || $pl_anno > 2100) $pl_anno = $anno_ora;
+
+$mesi_it = array(
+    1 => 'Gennaio', 2 => 'Febbraio', 3 => 'Marzo', 4 => 'Aprile',
+    5 => 'Maggio', 6 => 'Giugno', 7 => 'Luglio', 8 => 'Agosto',
+    9 => 'Settembre', 10 => 'Ottobre', 11 => 'Novembre', 12 => 'Dicembre',
+);
+
+$pagina_url = get_permalink();
+
+// --- Calcolo mese precedente e successivo ---
+$prev_mese = $pl_mese - 1; $prev_anno = $pl_anno;
+if ($prev_mese < 1) { $prev_mese = 12; $prev_anno--; }
+$next_mese = $pl_mese + 1; $next_anno = $pl_anno;
+if ($next_mese > 12) { $next_mese = 1; $next_anno++; }
+
+$url_prev = add_query_arg(array('pl_anno' => $prev_anno, 'pl_mese' => $prev_mese), $pagina_url);
+$url_next = add_query_arg(array('pl_anno' => $next_anno, 'pl_mese' => $next_mese), $pagina_url);
+
+// --- Struttura del mese ---
+$primo_ts     = mktime(0, 0, 0, $pl_mese, 1, $pl_anno);
+$giorni_mese  = (int) date('t', $primo_ts);      // 28..31
+$dow_primo    = (int) date('N', $primo_ts);      // 1 (lun) .. 7 (dom)
+$offset       = $dow_primo - 1;                   // celle vuote iniziali
+
+// --- Recupera i post del mese, raggruppati per giorno ---
+$query_mese = new WP_Query(array(
+    'post_type'      => 'post',
+    'post_status'    => 'publish',
+    'posts_per_page' => -1,
+    'orderby'        => 'date',
+    'order'          => 'ASC',
+    'date_query'     => array(
+        array('year' => $pl_anno, 'month' => $pl_mese),
+    ),
+));
+
+$post_per_giorno = array();
+if ($query_mese->have_posts()) {
+    while ($query_mese->have_posts()) {
+        $query_mese->the_post();
+        $g = (int) get_the_date('j');
+        $post_per_giorno[$g][] = array(
+            'title' => get_the_title(),
+            'url'   => get_permalink(),
+        );
+    }
+}
+wp_reset_postdata();
+
+// --- Recupera le NOTE del mese, raggruppate per giorno ---
+// Il giorno di riferimento è nel metadato '_diary_nota_data' (YYYY-MM-DD),
+// non nella data di pubblicazione: così anche le note su giorni futuri
+// restano visibili (vedi diary_gestisci_invio_nota in functions.php).
+$primo_giorno_iso  = sprintf('%04d-%02d-01', $pl_anno, $pl_mese);
+$ultimo_giorno_iso = sprintf('%04d-%02d-%02d', $pl_anno, $pl_mese, $giorni_mese);
+
+$query_note = new WP_Query(array(
+    'post_type'      => 'diary_nota',
+    'post_status'    => 'publish',
+    'posts_per_page' => -1,
+    'meta_key'       => '_diary_nota_data',
+    'orderby'        => 'meta_value',
+    'order'          => 'ASC',
+    'meta_query'     => array(
+        array(
+            'key'     => '_diary_nota_data',
+            'value'   => array($primo_giorno_iso, $ultimo_giorno_iso),
+            'compare' => 'BETWEEN',
+            'type'    => 'DATE',
+        ),
+    ),
+));
+
+$note_per_giorno = array();
+if ($query_note->have_posts()) {
+    while ($query_note->have_posts()) {
+        $query_note->the_post();
+        $iso = get_post_meta(get_the_ID(), '_diary_nota_data', true);
+        $g   = (int) substr($iso, 8, 2);   // giorno da 'YYYY-MM-DD'
+        if ($g < 1) continue;
+        $note_per_giorno[$g][] = array(
+            'title' => get_the_title(),
+            'url'   => get_permalink(),
+            'id'    => get_the_ID(),
+        );
+    }
+}
+wp_reset_postdata();
+
+// Solo l'autore autorizzato vede i comandi di inserimento/eliminazione
+$puo_gestire = function_exists('diary_nota_puo_gestire') && diary_nota_puo_gestire();
+
+// --- Anni disponibili (dal primo post a oggi) per il selettore ---
+$primo_post = get_posts(array(
+    'post_type'      => 'post',
+    'post_status'    => 'publish',
+    'posts_per_page' => 1,
+    'orderby'        => 'date',
+    'order'          => 'ASC',
+    'fields'         => 'ids',
+));
+$anno_min = $anno_ora;
+if (!empty($primo_post)) {
+    $anno_min = (int) get_the_date('Y', $primo_post[0]);
+}
+if ($anno_min > $pl_anno) $anno_min = $pl_anno;
+
+$giorni_settimana = array('Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom');
+?>
+
+<div class="diary-planner">
+
+    <header class="planner-header">
+        <h1 class="planner-title"><?php esc_html_e('Planner', 'diary'); ?></h1>
+
+        <div class="planner-controls">
+            <a class="planner-nav planner-prev" href="<?php echo esc_url($url_prev); ?>" aria-label="<?php esc_attr_e('Mese precedente', 'diary'); ?>">&larr;</a>
+
+            <form class="planner-selector" method="get" action="<?php echo esc_url($pagina_url); ?>">
+                <select name="pl_mese" aria-label="<?php esc_attr_e('Mese', 'diary'); ?>" onchange="this.form.submit()">
+                    <?php foreach ($mesi_it as $num => $nome) : ?>
+                        <option value="<?php echo esc_attr($num); ?>" <?php selected($num, $pl_mese); ?>>
+                            <?php echo esc_html($nome); ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <select name="pl_anno" aria-label="<?php esc_attr_e('Anno', 'diary'); ?>" onchange="this.form.submit()">
+                    <?php for ($y = $anno_ora + 1; $y >= $anno_min; $y--) : ?>
+                        <option value="<?php echo esc_attr($y); ?>" <?php selected($y, $pl_anno); ?>>
+                            <?php echo esc_html($y); ?>
+                        </option>
+                    <?php endfor; ?>
+                </select>
+                <noscript><button type="submit" class="diary-button"><?php esc_html_e('Vai', 'diary'); ?></button></noscript>
+            </form>
+
+            <a class="planner-nav planner-next" href="<?php echo esc_url($url_next); ?>" aria-label="<?php esc_attr_e('Mese successivo', 'diary'); ?>">&rarr;</a>
+        </div>
+
+        <p class="planner-mese-corrente"><?php echo esc_html($mesi_it[$pl_mese] . ' ' . $pl_anno); ?></p>
+    </header>
+
+    <div class="planner-grid" role="grid">
+
+        <?php foreach ($giorni_settimana as $gs) : ?>
+            <div class="planner-dow" role="columnheader"><?php echo esc_html($gs); ?></div>
+        <?php endforeach; ?>
+
+        <?php
+        // Celle vuote iniziali
+        for ($i = 0; $i < $offset; $i++) {
+            echo '<div class="planner-cell planner-cell-empty" aria-hidden="true"></div>';
+        }
+
+        // Giorni del mese
+        for ($g = 1; $g <= $giorni_mese; $g++) :
+            $is_oggi = ($pl_anno === $anno_ora && $pl_mese === $mese_ora && $g === $giorno_ora);
+            $ha_post = !empty($post_per_giorno[$g]);
+            $ha_nota = !empty($note_per_giorno[$g]);
+            $classi  = 'planner-cell';
+            if ($is_oggi) $classi .= ' planner-oggi';
+            if ($ha_post || $ha_nota) $classi .= ' planner-ha-post';
+            if ($ha_nota) $classi .= ' planner-ha-nota';
+            ?>
+            <div class="<?php echo esc_attr($classi); ?>" role="gridcell">
+                <?php if ($ha_nota) :
+                    $n_note = count($note_per_giorno[$g]); ?>
+                    <span class="planner-nota-pin" aria-hidden="true"
+                          title="<?php echo esc_attr(sprintf(_n('%d nota', '%d note', $n_note, 'diary'), $n_note)); ?>"></span>
+                <?php endif; ?>
+                <div class="planner-giorno-num"><?php echo esc_html($g); ?></div>
+                <?php if ($ha_post) : ?>
+                    <ul class="planner-post-list">
+                        <?php foreach ($post_per_giorno[$g] as $p) : ?>
+                            <li>
+                                <a href="<?php echo esc_url($p['url']); ?>" title="<?php echo esc_attr($p['title']); ?>">
+                                    <?php echo esc_html($p['title']); ?>
+                                </a>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+
+                <?php if ($ha_nota) : ?>
+                    <ul class="planner-nota-list">
+                        <?php foreach ($note_per_giorno[$g] as $n) : ?>
+                            <li class="planner-nota-item">
+                                <a class="planner-nota-link" href="<?php echo esc_url($n['url']); ?>" title="<?php echo esc_attr($n['title']); ?>">
+                                    <?php echo esc_html($n['title']); ?>
+                                </a>
+                                <?php if ($puo_gestire) :
+                                    $url_del = wp_nonce_url(
+                                        add_query_arg('diary_del_nota', $n['id'], $pagina_url),
+                                        'diary_del_nota_' . $n['id']
+                                    );
+                                    $edit_cb = 'diary-nota-edit-cb-' . $n['id'];
+                                    ?>
+                                    <label for="<?php echo esc_attr($edit_cb); ?>" class="planner-nota-edit"
+                                           title="<?php esc_attr_e('Modifica testo', 'diary'); ?>">&#9998;</label>
+                                    <a class="planner-nota-del" href="<?php echo esc_url($url_del); ?>"
+                                       title="<?php esc_attr_e('Elimina nota', 'diary'); ?>"
+                                       aria-label="<?php esc_attr_e('Elimina nota', 'diary'); ?>">&times;</a>
+                                    <input type="checkbox" id="<?php echo esc_attr($edit_cb); ?>" class="planner-nota-edit-toggle" tabindex="-1" aria-hidden="true">
+                                    <form class="planner-nota-edit-form" method="post" action="<?php echo esc_url($pagina_url); ?>">
+                                        <input type="hidden" name="diary_nota_edit_submit" value="1">
+                                        <input type="hidden" name="diary_nota_id" value="<?php echo esc_attr($n['id']); ?>">
+                                        <input type="hidden" name="diary_nota_anno" value="<?php echo esc_attr($pl_anno); ?>">
+                                        <input type="hidden" name="diary_nota_mese" value="<?php echo esc_attr($pl_mese); ?>">
+                                        <input type="hidden" name="diary_nota_planner_url" value="<?php echo esc_url($pagina_url); ?>">
+                                        <?php wp_nonce_field('diary_nota_edit', 'diary_nota_nonce'); ?>
+                                        <input type="text" name="diary_nota_testo" class="planner-nota-input"
+                                               value="<?php echo esc_attr($n['title']); ?>" maxlength="120" required>
+                                        <button type="submit" class="planner-nota-salva"><?php esc_html_e('Salva', 'diary'); ?></button>
+                                    </form>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
+
+                <?php if ($puo_gestire) :
+                    $cb_id = 'diary-nota-cb-' . $pl_anno . '-' . $pl_mese . '-' . $g;
+                    ?>
+                    <input type="checkbox" id="<?php echo esc_attr($cb_id); ?>" class="planner-nota-toggle" tabindex="-1" aria-hidden="true">
+                    <label for="<?php echo esc_attr($cb_id); ?>" class="planner-nota-add">+ <?php esc_html_e('nota', 'diary'); ?></label>
+                    <form class="planner-nota-form" method="post" action="<?php echo esc_url($pagina_url); ?>">
+                        <input type="hidden" name="diary_nota_submit" value="1">
+                        <input type="hidden" name="diary_nota_anno" value="<?php echo esc_attr($pl_anno); ?>">
+                        <input type="hidden" name="diary_nota_mese" value="<?php echo esc_attr($pl_mese); ?>">
+                        <input type="hidden" name="diary_nota_giorno" value="<?php echo esc_attr($g); ?>">
+                        <input type="hidden" name="diary_nota_planner_url" value="<?php echo esc_url($pagina_url); ?>">
+                        <?php wp_nonce_field('diary_nota_add', 'diary_nota_nonce'); ?>
+                        <input type="text" name="diary_nota_testo" class="planner-nota-input"
+                               placeholder="<?php esc_attr_e('Es. 3ªA — travi reticolari', 'diary'); ?>"
+                               maxlength="120" required>
+                        <button type="submit" class="planner-nota-salva"><?php esc_html_e('Salva', 'diary'); ?></button>
+                    </form>
+                <?php endif; ?>
+            </div>
+        <?php endfor;
+
+        // Celle vuote finali per completare l'ultima riga
+        $celle_totali = $offset + $giorni_mese;
+        $resto = $celle_totali % 7;
+        if ($resto !== 0) {
+            for ($i = $resto; $i < 7; $i++) {
+                echo '<div class="planner-cell planner-cell-empty" aria-hidden="true"></div>';
+            }
+        }
+        ?>
+    </div>
+
+    <?php
+    $tot_mese = $query_mese->found_posts;
+    if ($tot_mese > 0) : ?>
+        <p class="planner-riepilogo">
+            <?php
+            printf(
+                esc_html(_n('%1$s articolo pubblicato in %2$s.', '%1$s articoli pubblicati in %2$s.', $tot_mese, 'diary')),
+                number_format_i18n($tot_mese),
+                esc_html($mesi_it[$pl_mese] . ' ' . $pl_anno)
+            );
+            ?>
+        </p>
+    <?php else : ?>
+        <p class="planner-riepilogo planner-vuoto">
+            <?php esc_html_e('Nessun articolo pubblicato in questo mese.', 'diary'); ?>
+        </p>
+    <?php endif; ?>
+
+</div><!-- .diary-planner -->
+
+<?php
+get_footer();
