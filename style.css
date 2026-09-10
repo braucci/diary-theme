@@ -4,7 +4,7 @@ Theme URI: https://github.com/braucci/diary-theme
 Author: Biagio Raucci
 Author URI: https://www.raucci.net/
 Description: Tema WordPress autonomo per blog letterari. Layout minimal a colonna singola, tipografia EB Garamond, testo giustificato coerente tra home e articolo, header blu con gradiente. Pensato per la lettura lunga. Nessuna dipendenza da temi padre.
-Version: 1.6.3
+Version: 1.6.0
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -956,7 +956,6 @@ a:hover { text-decoration: underline; }
 
 /* Celle */
 .planner-cell {
-    position: relative;
     min-height: 96px;
     border: 1px solid var(--diary-rule);
     border-radius: 8px;
@@ -1041,243 +1040,11 @@ a:hover { text-decoration: underline; }
 }
 .planner-vuoto { font-style: italic; }
 
-/* =====================================================
-   NOTE DEL PLANNER (diario delle lezioni) — v1.6.0
-   ===================================================== */
-
-/* Elenco note nel giorno */
-.planner-nota-list {
-    list-style: none;
-    margin: 0.3rem 0 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
-}
-.planner-nota-item {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 0.25rem;
-}
-.planner-nota-link {
-    flex: 1;
-    display: block;
-    font-family: var(--diary-sans);
-    font-size: 0.74rem;
-    line-height: 1.25;
-    color: var(--diary-text);
-    text-decoration: none;
-    padding: 0.12rem 0.3rem;
-    border-left: 2px solid var(--diary-accent);
-    background: rgba(0, 0, 0, 0.03);
-    border-radius: 0 4px 4px 0;
-}
-.planner-nota-link:hover {
-    background: var(--diary-accent);
-    color: #fff;
-}
-/* Comando di eliminazione (solo autore) */
-.planner-nota-del {
-    flex: 0 0 auto;
-    font-family: var(--diary-sans);
-    font-weight: 700;
-    line-height: 1;
-    color: #b00020;
-    text-decoration: none;
-    opacity: 0.55;
-    padding: 0.1rem 0.15rem;
-}
-.planner-nota-del:hover { opacity: 1; }
-
-/* Comando di modifica rapida del testo (solo autore) */
-.planner-nota-edit {
-    flex: 0 0 auto;
-    font-family: var(--diary-sans);
-    line-height: 1;
-    color: var(--diary-link);
-    cursor: pointer;
-    opacity: 0.55;
-    padding: 0.1rem 0.15rem;
-    user-select: none;
-}
-.planner-nota-edit:hover { opacity: 1; }
-.planner-nota-edit-toggle {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-}
-.planner-nota-edit-form { display: none; width: 100%; margin-top: 0.25rem; }
-.planner-nota-edit-toggle:checked ~ .planner-nota-edit-form { display: block; }
-
-/* Pulsante "+ nota" e modulo inline (solo autore) */
-.planner-nota-toggle {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    opacity: 0;
-    pointer-events: none;
-}
-.planner-nota-add {
-    display: inline-block;
-    margin-top: 0.3rem;
-    font-family: var(--diary-sans);
-    font-size: 0.68rem;
-    color: var(--diary-text-soft);
-    cursor: pointer;
-    border: 1px dashed var(--diary-rule);
-    border-radius: 4px;
-    padding: 0.05rem 0.4rem;
-    user-select: none;
-    transition: color 0.15s, border-color 0.15s;
-}
-.planner-nota-add:hover {
-    color: var(--diary-text);
-    border-color: var(--diary-text-soft);
-}
-.planner-nota-form { display: none; margin-top: 0.3rem; }
-.planner-nota-toggle:checked ~ .planner-nota-form { display: block; }
-.planner-nota-toggle:checked ~ .planner-nota-add {
-    color: var(--diary-text);
-    border-color: var(--diary-text-soft);
-}
-.planner-nota-input {
-    width: 100%;
-    box-sizing: border-box;
-    font-family: var(--diary-sans);
-    font-size: 0.74rem;
-    padding: 0.2rem 0.3rem;
-    margin-bottom: 0.25rem;
-    border: 1px solid var(--diary-rule);
-    border-radius: 4px;
-}
-.planner-nota-salva {
-    font-family: var(--diary-sans);
-    font-size: 0.68rem;
-    padding: 0.15rem 0.6rem;
-    cursor: pointer;
-    border: 1px solid var(--diary-blue-bottom);
-    background: var(--diary-blue-bottom);
-    color: #fff;
-    border-radius: 4px;
-}
-.planner-nota-salva:hover { opacity: 0.9; }
-
-/* Pin verde: segnala i giorni con note (forma a spillo da mappa) */
-.planner-nota-pin {
-    position: absolute;
-    top: 7px;
-    right: 7px;
-    width: 11px;
-    height: 11px;
-    background: #2e9e5b;
-    border-radius: 50% 50% 50% 0;
-    transform: rotate(45deg);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-    z-index: 2;
-}
-.planner-nota-pin::after {
-    /* pallino chiaro centrale, per l'effetto "capocchia" dello spillo */
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 4px;
-    height: 4px;
-    background: #eafff1;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
-}
-/* La cella con nota lascia respiro alla pin accanto al numero del giorno */
-.planner-ha-nota .planner-giorno-num { padding-right: 14px; }
-
-/* =====================================================
-   NOTA — PAGINA SINGOLA "POST-IT" (single-diary_nota.php)
-   ===================================================== */
-.nota-postit-wrap {
-    max-width: 560px;
-    margin: 2.5rem auto;
-    padding: 0 1rem;
-}
-.nota-postit {
-    position: relative;
-    background: #fff09a;
-    background-image: linear-gradient(180deg, #fff3ad 0%, #ffe86b 100%);
-    color: #3a3200;
-    padding: 2.2rem 1.9rem 2rem;
-    border-radius: 3px;
-    box-shadow: 0 10px 22px rgba(0, 0, 0, 0.18),
-                inset 0 0 40px rgba(0, 0, 0, 0.03);
-    transform: rotate(-1.4deg);
-}
-/* Angolo inferiore destro leggermente "arricciato" */
-.nota-postit::after {
-    content: "";
-    position: absolute;
-    right: 0;
-    bottom: 0;
-    width: 42px;
-    height: 42px;
-    background: linear-gradient(135deg, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0.08) 50%);
-    border-bottom-right-radius: 3px;
-}
-/* Spillo verde in cima al post-it, richiama le pin del calendario */
-.nota-postit-pin {
-    position: absolute;
-    top: -12px;
-    left: 50%;
-    width: 20px;
-    height: 20px;
-    transform: translateX(-50%);
-    background: #2e9e5b;
-    border-radius: 50%;
-    box-shadow: 0 3px 5px rgba(0, 0, 0, 0.3),
-                inset 0 -3px 4px rgba(0, 0, 0, 0.25),
-                inset 0 3px 4px rgba(255, 255, 255, 0.45);
-}
-.nota-postit-data {
-    margin: 0 0 0.6rem;
-    font-family: var(--diary-sans);
-    font-size: 0.8rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #7a6a00;
-}
-.nota-postit-title {
-    margin: 0;
-    font-family: var(--diary-serif);
-    font-weight: 700;
-    font-size: 1.7rem;
-    line-height: 1.25;
-    color: #2b2600;
-}
-.nota-postit-content {
-    margin-top: 1rem;
-    font-family: var(--diary-serif);
-    font-size: 1.05rem;
-    line-height: 1.6;
-}
-.nota-postit-content p:last-child { margin-bottom: 0; }
-.nota-postit-back {
-    text-align: center;
-    margin-top: 1.8rem;
-}
-.nota-postit-back a {
-    font-family: var(--diary-sans);
-    font-size: 0.9rem;
-    color: var(--diary-text-soft);
-    text-decoration: none;
-}
-.nota-postit-back a:hover { color: var(--diary-text); }
-
 /* --- Responsive --- */
 @media (max-width: 780px) {
     .planner-cell { min-height: 72px; }
     .planner-post-list a { font-size: 0.72rem; }
     .planner-dow { font-size: 0.65rem; }
-    .planner-nota-link { font-size: 0.72rem; }
 }
 
 /* Su schermi molto stretti il calendario a 7 colonne è illeggibile:
@@ -1300,10 +1067,6 @@ a:hover { text-decoration: underline; }
     /* Mostra solo i giorni con post per non avere 31 celle vuote */
     .planner-cell:not(.planner-ha-post):not(.planner-oggi) {
         display: none;
-    }
-    /* ...ma se sei loggato mostra ogni giorno, per poter aggiungere note */
-    body.logged-in .planner-cell:not(.planner-ha-post):not(.planner-oggi) {
-        display: flex;
     }
     .planner-giorno-num {
         min-width: 1.5rem;

@@ -75,49 +75,6 @@ if ($query_mese->have_posts()) {
 }
 wp_reset_postdata();
 
-// --- Recupera le NOTE del mese, raggruppate per giorno ---
-// Il giorno di riferimento è nel metadato '_diary_nota_data' (YYYY-MM-DD),
-// non nella data di pubblicazione: così anche le note su giorni futuri
-// restano visibili (vedi diary_gestisci_invio_nota in functions.php).
-$primo_giorno_iso  = sprintf('%04d-%02d-01', $pl_anno, $pl_mese);
-$ultimo_giorno_iso = sprintf('%04d-%02d-%02d', $pl_anno, $pl_mese, $giorni_mese);
-
-$query_note = new WP_Query(array(
-    'post_type'      => 'diary_nota',
-    'post_status'    => 'publish',
-    'posts_per_page' => -1,
-    'meta_key'       => '_diary_nota_data',
-    'orderby'        => 'meta_value',
-    'order'          => 'ASC',
-    'meta_query'     => array(
-        array(
-            'key'     => '_diary_nota_data',
-            'value'   => array($primo_giorno_iso, $ultimo_giorno_iso),
-            'compare' => 'BETWEEN',
-            'type'    => 'DATE',
-        ),
-    ),
-));
-
-$note_per_giorno = array();
-if ($query_note->have_posts()) {
-    while ($query_note->have_posts()) {
-        $query_note->the_post();
-        $iso = get_post_meta(get_the_ID(), '_diary_nota_data', true);
-        $g   = (int) substr($iso, 8, 2);   // giorno da 'YYYY-MM-DD'
-        if ($g < 1) continue;
-        $note_per_giorno[$g][] = array(
-            'title' => get_the_title(),
-            'url'   => get_permalink(),
-            'id'    => get_the_ID(),
-        );
-    }
-}
-wp_reset_postdata();
-
-// Solo l'autore autorizzato vede i comandi di inserimento/eliminazione
-$puo_gestire = function_exists('diary_nota_puo_gestire') && diary_nota_puo_gestire();
-
 // --- Anni disponibili (dal primo post a oggi) per il selettore ---
 $primo_post = get_posts(array(
     'post_type'      => 'post',
@@ -184,18 +141,11 @@ $giorni_settimana = array('Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom');
         for ($g = 1; $g <= $giorni_mese; $g++) :
             $is_oggi = ($pl_anno === $anno_ora && $pl_mese === $mese_ora && $g === $giorno_ora);
             $ha_post = !empty($post_per_giorno[$g]);
-            $ha_nota = !empty($note_per_giorno[$g]);
             $classi  = 'planner-cell';
             if ($is_oggi) $classi .= ' planner-oggi';
-            if ($ha_post || $ha_nota) $classi .= ' planner-ha-post';
-            if ($ha_nota) $classi .= ' planner-ha-nota';
+            if ($ha_post) $classi .= ' planner-ha-post';
             ?>
             <div class="<?php echo esc_attr($classi); ?>" role="gridcell">
-                <?php if ($ha_nota) :
-                    $n_note = count($note_per_giorno[$g]); ?>
-                    <span class="planner-nota-pin" aria-hidden="true"
-                          title="<?php echo esc_attr(sprintf(_n('%d nota', '%d note', $n_note, 'diary'), $n_note)); ?>"></span>
-                <?php endif; ?>
                 <div class="planner-giorno-num"><?php echo esc_html($g); ?></div>
                 <?php if ($ha_post) : ?>
                     <ul class="planner-post-list">
@@ -207,62 +157,6 @@ $giorni_settimana = array('Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom');
                             </li>
                         <?php endforeach; ?>
                     </ul>
-                <?php endif; ?>
-
-                <?php if ($ha_nota) : ?>
-                    <ul class="planner-nota-list">
-                        <?php foreach ($note_per_giorno[$g] as $n) : ?>
-                            <li class="planner-nota-item">
-                                <a class="planner-nota-link" href="<?php echo esc_url($n['url']); ?>" title="<?php echo esc_attr($n['title']); ?>">
-                                    <?php echo esc_html($n['title']); ?>
-                                </a>
-                                <?php if ($puo_gestire) :
-                                    $url_del = wp_nonce_url(
-                                        add_query_arg('diary_del_nota', $n['id'], $pagina_url),
-                                        'diary_del_nota_' . $n['id']
-                                    );
-                                    $edit_cb = 'diary-nota-edit-cb-' . $n['id'];
-                                    ?>
-                                    <label for="<?php echo esc_attr($edit_cb); ?>" class="planner-nota-edit"
-                                           title="<?php esc_attr_e('Modifica testo', 'diary'); ?>">&#9998;</label>
-                                    <a class="planner-nota-del" href="<?php echo esc_url($url_del); ?>"
-                                       title="<?php esc_attr_e('Elimina nota', 'diary'); ?>"
-                                       aria-label="<?php esc_attr_e('Elimina nota', 'diary'); ?>">&times;</a>
-                                    <input type="checkbox" id="<?php echo esc_attr($edit_cb); ?>" class="planner-nota-edit-toggle" tabindex="-1" aria-hidden="true">
-                                    <form class="planner-nota-edit-form" method="post" action="<?php echo esc_url($pagina_url); ?>">
-                                        <input type="hidden" name="diary_nota_edit_submit" value="1">
-                                        <input type="hidden" name="diary_nota_id" value="<?php echo esc_attr($n['id']); ?>">
-                                        <input type="hidden" name="diary_nota_anno" value="<?php echo esc_attr($pl_anno); ?>">
-                                        <input type="hidden" name="diary_nota_mese" value="<?php echo esc_attr($pl_mese); ?>">
-                                        <input type="hidden" name="diary_nota_planner_url" value="<?php echo esc_url($pagina_url); ?>">
-                                        <?php wp_nonce_field('diary_nota_edit', 'diary_nota_nonce'); ?>
-                                        <input type="text" name="diary_nota_testo" class="planner-nota-input"
-                                               value="<?php echo esc_attr($n['title']); ?>" maxlength="120" required>
-                                        <button type="submit" class="planner-nota-salva"><?php esc_html_e('Salva', 'diary'); ?></button>
-                                    </form>
-                                <?php endif; ?>
-                            </li>
-                        <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
-
-                <?php if ($puo_gestire) :
-                    $cb_id = 'diary-nota-cb-' . $pl_anno . '-' . $pl_mese . '-' . $g;
-                    ?>
-                    <input type="checkbox" id="<?php echo esc_attr($cb_id); ?>" class="planner-nota-toggle" tabindex="-1" aria-hidden="true">
-                    <label for="<?php echo esc_attr($cb_id); ?>" class="planner-nota-add">+ <?php esc_html_e('nota', 'diary'); ?></label>
-                    <form class="planner-nota-form" method="post" action="<?php echo esc_url($pagina_url); ?>">
-                        <input type="hidden" name="diary_nota_submit" value="1">
-                        <input type="hidden" name="diary_nota_anno" value="<?php echo esc_attr($pl_anno); ?>">
-                        <input type="hidden" name="diary_nota_mese" value="<?php echo esc_attr($pl_mese); ?>">
-                        <input type="hidden" name="diary_nota_giorno" value="<?php echo esc_attr($g); ?>">
-                        <input type="hidden" name="diary_nota_planner_url" value="<?php echo esc_url($pagina_url); ?>">
-                        <?php wp_nonce_field('diary_nota_add', 'diary_nota_nonce'); ?>
-                        <input type="text" name="diary_nota_testo" class="planner-nota-input"
-                               placeholder="<?php esc_attr_e('Es. 3ªA — travi reticolari', 'diary'); ?>"
-                               maxlength="120" required>
-                        <button type="submit" class="planner-nota-salva"><?php esc_html_e('Salva', 'diary'); ?></button>
-                    </form>
                 <?php endif; ?>
             </div>
         <?php endfor;
