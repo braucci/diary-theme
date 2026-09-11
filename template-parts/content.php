@@ -38,7 +38,7 @@ if ('full' === $diary_display) {
     //     l'immagine è già visibile nel contenuto, quindi non la
     //     ripetiamo qui per evitare doppioni).
     if (has_post_thumbnail()) : ?>
-        <div class="entry-thumbnail">
+        <div class="entry-thumbnail entry-thumbnail--preview">
             <a href="<?php the_permalink(); ?>" aria-hidden="true" tabindex="-1">
                 <?php the_post_thumbnail('diary-featured'); ?>
             </a>
@@ -47,7 +47,7 @@ if ('full' === $diary_display) {
     elseif (!$diary_show_full) :
         $diary_img = diary_first_content_image(get_post());
         if ($diary_img) : ?>
-            <div class="entry-thumbnail">
+            <div class="entry-thumbnail entry-thumbnail--preview">
                 <a href="<?php the_permalink(); ?>" aria-hidden="true" tabindex="-1">
                     <img src="<?php echo esc_url($diary_img); ?>" alt="<?php echo esc_attr(get_the_title()); ?>" loading="lazy">
                 </a>

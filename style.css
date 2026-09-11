@@ -4,7 +4,7 @@ Theme URI: https://github.com/braucci/diary-theme
 Author: Biagio Raucci
 Author URI: https://www.raucci.net/
 Description: Tema WordPress autonomo per blog letterari. Layout minimal a colonna singola, tipografia EB Garamond, testo giustificato coerente tra home e articolo, header blu con gradiente. Pensato per la lettura lunga. Nessuna dipendenza da temi padre.
-Version: 1.6.0
+Version: 1.7.0
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -40,6 +40,11 @@ Tags: blog, one-column, custom-menu, featured-images, threaded-comments, transla
        così non c'è alcun "salto" tra le viste. */
     --diary-font-body:  1.3rem;
     --diary-line-body:  1.75;
+
+    /* Proporzione della striscia-immagine nelle anteprime home.
+       5/2 = striscia orizzontale (largo:alto = 2.5:1).
+       Per una striscia più bassa usa 3/1; più alta 16/9. */
+    --diary-preview-ratio: 5 / 2;
 }
 
 /* =====================================================
@@ -1100,4 +1105,39 @@ a:hover { text-decoration: underline; }
 }
 .site-footer .footer-admin-link:hover {
     color: var(--diary-link);
+}
+
+
+/* =====================================================
+   ANTEPRIME HOME — striscia-immagine uniforme (v1.7.0)
+   Tutte le immagini in home/archivio vengono ritagliate
+   allo stesso rettangolo orizzontale (object-fit: cover),
+   con angoli arrotondati. L'immagine non si deforma:
+   viene mostrata una porzione centrale della foto.
+   Nell'articolo singolo l'immagine resta invece intera.
+   ===================================================== */
+.entry-thumbnail--preview {
+    display: block;
+    margin: 0 0 1.75rem;
+}
+.entry-thumbnail--preview a {
+    display: block;
+    line-height: 0;
+}
+.entry-thumbnail--preview img {
+    display: block;
+    width: 100%;
+    aspect-ratio: var(--diary-preview-ratio);
+    object-fit: cover;
+    object-position: center;
+    border-radius: 10px;
+}
+
+/* Su schermi piccoli la striscia può essere un filo più alta
+   per non ridursi troppo. */
+@media (max-width: 600px) {
+    .entry-thumbnail--preview img {
+        aspect-ratio: 2 / 1;
+        border-radius: 8px;
+    }
 }
