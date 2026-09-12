@@ -35,6 +35,9 @@ $mesi_it = array(
 
 $pagina_url = get_permalink();
 
+// Chi può modificare i contenuti vede i controlli di editing delle note
+$puo_editare = current_user_can('edit_posts');
+
 // --- Calcolo mese precedente e successivo ---
 $prev_mese = $pl_mese - 1; $prev_anno = $pl_anno;
 if ($prev_mese < 1) { $prev_mese = 12; $prev_anno--; }
@@ -141,14 +144,27 @@ $giorni_settimana = array('Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom');
         for ($g = 1; $g <= $giorni_mese; $g++) :
             $is_oggi = ($pl_anno === $anno_ora && $pl_mese === $mese_ora && $g === $giorno_ora);
             $ha_post = !empty($post_per_giorno[$g]);
+            $data_iso = sprintf('%04d-%02d-%02d', $pl_anno, $pl_mese, $g);
+            $nota     = diary_get_planner_note($data_iso);
+            $ha_nota  = ('' !== $nota);
             $classi  = 'planner-cell';
             if ($is_oggi) $classi .= ' planner-oggi';
             if ($ha_post) $classi .= ' planner-ha-post';
+            if ($ha_nota) $classi .= ' planner-ha-nota';
             ?>
-            <div class="<?php echo esc_attr($classi); ?>" role="gridcell">
-                <div class="planner-giorno-num"><?php echo esc_html($g); ?></div>
-                <?php if ($ha_post) : ?>
-                    <ul class="planner-post-list">
+            <div class="<?php echo esc_attr($classi); ?>" role="gridcell"
+                 data-date="<?php echo esc_attr($data_iso); ?>"
+                 data-note="<?php echo esc_attr($nota); ?>"
+                 data-label="<?php echo esc_attr(sprintf('%d %s %d', $g, $mesi_it[$pl_mese], $pl_anno)); ?>">
+                <div class="planner-giorno-num">
+                    <span class="planner-giorno-cifra"><?php echo esc_html($g); ?></span>
+                    <?php if ($puo_editare) : ?>
+                        <button type="button" class="planner-add-note" title="<?php esc_attr_e('Aggiungi/Modifica nota', 'diary'); ?>" aria-label="<?php esc_attr_e('Aggiungi o modifica nota', 'diary'); ?>">+</button>
+                    <?php endif; ?>
+                </div>
+
+                <ul class="planner-post-list">
+                    <?php if ($ha_post) : ?>
                         <?php foreach ($post_per_giorno[$g] as $p) : ?>
                             <li>
                                 <a href="<?php echo esc_url($p['url']); ?>" title="<?php echo esc_attr($p['title']); ?>">
@@ -156,8 +172,15 @@ $giorni_settimana = array('Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom');
                                 </a>
                             </li>
                         <?php endforeach; ?>
-                    </ul>
-                <?php endif; ?>
+                    <?php endif; ?>
+
+                    <li class="planner-note-item" <?php echo $ha_nota ? '' : 'hidden'; ?>>
+                        <button type="button" class="planner-note-pin">
+                            <span class="planner-pin" aria-hidden="true"></span>
+                            <span class="planner-note-preview"><?php echo esc_html(wp_trim_words($nota, 6, '…')); ?></span>
+                        </button>
+                    </li>
+                </ul>
             </div>
         <?php endfor;
 
@@ -191,6 +214,43 @@ $giorni_settimana = array('Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom');
     <?php endif; ?>
 
 </div><!-- .diary-planner -->
+
+<!-- =========================================================
+     SCHERMATA POST-IT — fuori dal calendario, a pagina intera.
+     Unica per tutto il planner: viene riempita via JavaScript
+     con la nota del giorno selezionato.
+     ========================================================= -->
+<div id="diary-postit-screen" class="postit-screen" hidden>
+    <div class="postit-backdrop"></div>
+
+    <div class="postit-sheet" role="dialog" aria-modal="true" aria-label="<?php esc_attr_e('Nota del giorno', 'diary'); ?>">
+        <button type="button" class="postit-close" aria-label="<?php esc_attr_e('Chiudi', 'diary'); ?>">&times;</button>
+
+        <div class="postit-date"></div>
+
+        <!-- Vista lettura -->
+        <div class="postit-view">
+            <div class="postit-text"></div>
+            <?php if ($puo_editare) : ?>
+                <div class="postit-actions">
+                    <button type="button" class="postit-btn postit-edit"><?php esc_html_e('Modifica', 'diary'); ?></button>
+                    <button type="button" class="postit-btn postit-delete"><?php esc_html_e('Elimina', 'diary'); ?></button>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <?php if ($puo_editare) : ?>
+            <!-- Vista scrittura -->
+            <div class="postit-editor" hidden>
+                <textarea class="postit-textarea" rows="8" placeholder="<?php esc_attr_e('Scrivi qui la tua nota…', 'diary'); ?>"></textarea>
+                <div class="postit-actions">
+                    <button type="button" class="postit-btn postit-save"><?php esc_html_e('Salva', 'diary'); ?></button>
+                    <button type="button" class="postit-btn postit-cancel"><?php esc_html_e('Annulla', 'diary'); ?></button>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
 
 <?php
 get_footer();

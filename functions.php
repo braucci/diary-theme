@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('DIARY_VERSION')) {
-    define('DIARY_VERSION', '1.7.0');
+    define('DIARY_VERSION', '1.9.0');
 }
 
 /* ============================================================
@@ -325,3 +325,90 @@ function diary_sanitize_home_display($value) {
     $valid = array('excerpt', 'full', 'auto');
     return in_array($value, $valid, true) ? $value : 'excerpt';
 }
+
+
+/* ============================================================
+ * 13) PLANNER — note personali (post-it)
+ *     Salvate in un'opzione del database: sopravvivono a
+ *     qualsiasi aggiornamento del tema. Pubbliche in lettura,
+ *     modificabili solo da chi può editare i contenuti.
+ * ============================================================ */
+
+/* Legge tutte le note (array 'YYYY-MM-DD' => testo) */
+function diary_get_planner_notes() {
+    $notes = get_option('diary_planner_notes', array());
+    return is_array($notes) ? $notes : array();
+}
+
+/* Legge la nota di un singolo giorno */
+function diary_get_planner_note($date) {
+    $notes = diary_get_planner_notes();
+    return isset($notes[$date]) ? $notes[$date] : '';
+}
+
+/* Carica JS + dati solo sulla pagina che usa il template Planner */
+function diary_planner_assets() {
+    if (is_page_template('template-planner.php')) {
+        wp_enqueue_script(
+            'diary-planner',
+            get_template_directory_uri() . '/assets/js/planner.js',
+            array(),
+            DIARY_VERSION,
+            true
+        );
+        wp_localize_script('diary-planner', 'DiaryPlanner', array(
+            'ajaxUrl' => admin_url('admin-ajax.php'),
+            'nonce'   => wp_create_nonce('diary_planner_notes'),
+            'canEdit' => current_user_can('edit_posts') ? 1 : 0,
+        ));
+    }
+}
+add_action('wp_enqueue_scripts', 'diary_planner_assets');
+
+/* AJAX: salva o aggiorna una nota (solo utenti autorizzati) */
+function diary_ajax_save_note() {
+    check_ajax_referer('diary_planner_notes', 'nonce');
+    if (!current_user_can('edit_posts')) {
+        wp_send_json_error(array('msg' => 'non autorizzato'), 403);
+    }
+    $date = isset($_POST['date']) ? sanitize_text_field(wp_unslash($_POST['date'])) : '';
+    $note = isset($_POST['note']) ? sanitize_textarea_field(wp_unslash($_POST['note'])) : '';
+
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        wp_send_json_error(array('msg' => 'data non valida'));
+    }
+
+    $notes = diary_get_planner_notes();
+    if ('' === trim($note)) {
+        unset($notes[$date]);            // testo vuoto = cancella
+        $saved = '';
+    } else {
+        $notes[$date] = $note;
+        $saved = $note;
+    }
+    update_option('diary_planner_notes', $notes, false);
+
+    wp_send_json_success(array(
+        'date'    => $date,
+        'note'    => $saved,
+        'preview' => wp_trim_words($saved, 6, '…'),
+    ));
+}
+add_action('wp_ajax_diary_save_note', 'diary_ajax_save_note');
+
+/* AJAX: elimina una nota (solo utenti autorizzati) */
+function diary_ajax_delete_note() {
+    check_ajax_referer('diary_planner_notes', 'nonce');
+    if (!current_user_can('edit_posts')) {
+        wp_send_json_error(array('msg' => 'non autorizzato'), 403);
+    }
+    $date = isset($_POST['date']) ? sanitize_text_field(wp_unslash($_POST['date'])) : '';
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        wp_send_json_error(array('msg' => 'data non valida'));
+    }
+    $notes = diary_get_planner_notes();
+    unset($notes[$date]);
+    update_option('diary_planner_notes', $notes, false);
+    wp_send_json_success(array('date' => $date));
+}
+add_action('wp_ajax_diary_delete_note', 'diary_ajax_delete_note');
