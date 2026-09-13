@@ -158,9 +158,21 @@ $giorni_settimana = array('Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom');
                  data-label="<?php echo esc_attr(sprintf('%d %s %d', $g, $mesi_it[$pl_mese], $pl_anno)); ?>">
                 <div class="planner-giorno-num">
                     <span class="planner-giorno-cifra"><?php echo esc_html($g); ?></span>
-                    <?php if ($puo_editare) : ?>
-                        <button type="button" class="planner-add-note" title="<?php esc_attr_e('Aggiungi/Modifica nota', 'diary'); ?>" aria-label="<?php esc_attr_e('Aggiungi o modifica nota', 'diary'); ?>">+</button>
-                    <?php endif; ?>
+                    <span class="planner-giorno-icone">
+                        <?php
+                        // Fase lunare calcolata a mezzogiorno locale del giorno
+                        $ts_giorno  = mktime(12, 0, 0, $pl_mese, $g, $pl_anno);
+                        $luna_p     = diary_moon_phase_fraction($ts_giorno);
+                        $luna_nome  = diary_moon_phase_name($luna_p);
+                        $luna_ill   = diary_moon_illumination($luna_p);
+                        ?>
+                        <span class="planner-luna" title="<?php echo esc_attr(sprintf('%s — %d%% illuminata', $luna_nome, $luna_ill)); ?>">
+                            <?php echo diary_moon_svg($luna_p, 15); ?>
+                        </span>
+                        <?php if ($puo_editare) : ?>
+                            <button type="button" class="planner-add-note" title="<?php esc_attr_e('Aggiungi/Modifica nota', 'diary'); ?>" aria-label="<?php esc_attr_e('Aggiungi o modifica nota', 'diary'); ?>">+</button>
+                        <?php endif; ?>
+                    </span>
                 </div>
 
                 <ul class="planner-post-list">

@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 if (!defined('DIARY_VERSION')) {
-    define('DIARY_VERSION', '1.9.0');
+    define('DIARY_VERSION', '1.11.0');
 }
 
 /* ============================================================
@@ -412,3 +412,155 @@ function diary_ajax_delete_note() {
     wp_send_json_success(array('date' => $date));
 }
 add_action('wp_ajax_diary_delete_note', 'diary_ajax_delete_note');
+
+
+/* ============================================================
+ * 14) CONTATORE VISITE
+ *     Conteggio e lettura via AJAX (admin-ajax.php non è
+ *     mai in cache), così i numeri restano corretti anche
+ *     con Aruba HiSpeed Cache attivo.
+ *     Dati salvati nel database: sopravvivono agli aggiornamenti.
+ * ============================================================ */
+
+/* Restituisce array( 'total' => int, 'today' => int ) */
+function diary_get_visit_counts() {
+    $total = (int) get_option('diary_visits_total', 0);
+    $day   = get_option('diary_visits_day', array());
+    $oggi  = current_time('Y-m-d');
+
+    $today = 0;
+    if (is_array($day) && isset($day['date'], $day['count']) && $day['date'] === $oggi) {
+        $today = (int) $day['count'];
+    }
+    return array('total' => $total, 'today' => $today);
+}
+
+/* Incrementa i contatori (una volta per richiesta) */
+function diary_register_visit() {
+    $total = (int) get_option('diary_visits_total', 0);
+    $total++;
+    update_option('diary_visits_total', $total, false);
+
+    $oggi = current_time('Y-m-d');
+    $day  = get_option('diary_visits_day', array());
+
+    if (is_array($day) && isset($day['date']) && $day['date'] === $oggi) {
+        $count = (int) $day['count'] + 1;
+    } else {
+        $count = 1;   // nuovo giorno: si riparte da 1
+    }
+    update_option('diary_visits_day', array('date' => $oggi, 'count' => $count), false);
+
+    return array('total' => $total, 'today' => $count);
+}
+
+/* AJAX: registra la visita e restituisce i totali.
+   Accessibile anche ai non loggati (wp_ajax_nopriv). */
+function diary_ajax_hit() {
+    // Non contiamo le visite di chi amministra il sito
+    if (current_user_can('edit_posts')) {
+        wp_send_json_success(diary_get_visit_counts());
+    }
+    wp_send_json_success(diary_register_visit());
+}
+add_action('wp_ajax_diary_hit', 'diary_ajax_hit');
+add_action('wp_ajax_nopriv_diary_hit', 'diary_ajax_hit');
+
+/* AJAX: sola lettura (senza incrementare) */
+function diary_ajax_counts() {
+    wp_send_json_success(diary_get_visit_counts());
+}
+add_action('wp_ajax_diary_counts', 'diary_ajax_counts');
+add_action('wp_ajax_nopriv_diary_counts', 'diary_ajax_counts');
+
+/* Carica lo script del contatore su tutto il sito */
+function diary_counter_assets() {
+    wp_enqueue_script(
+        'diary-counter',
+        get_template_directory_uri() . '/assets/js/counter.js',
+        array(),
+        DIARY_VERSION,
+        true
+    );
+    wp_localize_script('diary-counter', 'DiaryCounter', array(
+        'ajaxUrl' => admin_url('admin-ajax.php'),
+    ));
+}
+add_action('wp_enqueue_scripts', 'diary_counter_assets');
+
+
+/* ============================================================
+ * 15) FASI LUNARI per il Planner
+ *     Calcolo astronomico basato sul mese sinodico medio
+ *     (29,530588853 giorni) a partire da un novilunio noto:
+ *     6 gennaio 2000, 18:14 UTC.
+ *     Precisione più che sufficiente per un planner (±1 giorno
+ *     nei casi peggiori, dovuta all'eccentricità dell'orbita).
+ * ============================================================ */
+
+/* Frazione della lunazione: 0 = novilunio, 0.5 = plenilunio */
+function diary_moon_phase_fraction($timestamp) {
+    $epoca_novilunio = 947182440;      // 2000-01-06 18:14 UTC
+    $mese_sinodico   = 29.530588853;   // giorni
+
+    $giorni = ($timestamp - $epoca_novilunio) / 86400;
+    $p = fmod($giorni / $mese_sinodico, 1);
+    if ($p < 0) {
+        $p += 1;
+    }
+    return $p;
+}
+
+/* Nome italiano della fase */
+function diary_moon_phase_name($p) {
+    if ($p < 0.0334 || $p >= 0.9666) return __('Luna nuova', 'diary');
+    if ($p < 0.2166) return __('Luna crescente', 'diary');
+    if ($p < 0.2834) return __('Primo quarto', 'diary');
+    if ($p < 0.4666) return __('Gibbosa crescente', 'diary');
+    if ($p < 0.5334) return __('Luna piena', 'diary');
+    if ($p < 0.7166) return __('Gibbosa calante', 'diary');
+    if ($p < 0.7834) return __('Ultimo quarto', 'diary');
+    return __('Luna calante', 'diary');
+}
+
+/* Percentuale illuminata (0-100) */
+function diary_moon_illumination($p) {
+    return (int) round((1 - cos(2 * M_PI * $p)) / 2 * 100);
+}
+
+/**
+ * SVG dell'icona lunare.
+ * Il disco illuminato è delimitato da due archi: il bordo esterno
+ * (semicirconferenza) e il terminatore, un'ellisse il cui semiasse
+ * orizzontale vale r·cos(2πp) — nullo ai quarti (terminatore
+ * rettilineo), massimo ai sizigi.
+ */
+function diary_moon_svg($p, $size = 15) {
+    $r  = 14;
+    $rx = $r * cos(2 * M_PI * $p);
+    $arx = abs($rx);
+    $waxing = ($p < 0.5);
+
+    if ($waxing) {
+        $outer = 1;
+        $inner = ($rx > 0) ? 0 : 1;
+    } else {
+        $outer = 0;
+        $inner = ($rx > 0) ? 1 : 0;
+    }
+
+    $path = sprintf(
+        'M0,%1$d A%2$d,%2$d 0 0,%3$d 0,%4$d A%5$.2f,%2$d 0 0,%6$d 0,%1$d Z',
+        -$r, $r, $outer, $r, $arx, $inner
+    );
+
+    return sprintf(
+        '<svg class="moon-icon" viewBox="-16 -16 32 32" width="%1$d" height="%1$d" aria-hidden="true" focusable="false">'
+        . '<circle cx="0" cy="0" r="%2$d" class="moon-dark"/>'
+        . '<path d="%3$s" class="moon-lit"/>'
+        . '</svg>',
+        (int) $size,
+        $r,
+        esc_attr($path)
+    );
+}

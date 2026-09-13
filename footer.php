@@ -60,6 +60,20 @@ $diary_has_footer_widgets = is_active_sidebar('footer-1') || is_active_sidebar('
 
         <?php diary_footer_quote(); ?>
 
+        <?php if (is_front_page() || is_home()) : ?>
+            <div id="diary-visit-counter" class="visit-counter">
+                <span class="visit-item">
+                    <span class="visit-label"><?php esc_html_e('Visite totali', 'diary'); ?></span>
+                    <span class="visit-number" id="diary-visits-total">&mdash;</span>
+                </span>
+                <span class="visit-sep">&middot;</span>
+                <span class="visit-item">
+                    <span class="visit-label"><?php esc_html_e('Oggi', 'diary'); ?></span>
+                    <span class="visit-number" id="diary-visits-today">&mdash;</span>
+                </span>
+            </div>
+        <?php endif; ?>
+
     </footer><!-- #colophon -->
 
 </div><!-- #page -->

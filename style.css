@@ -4,7 +4,7 @@ Theme URI: https://github.com/braucci/diary-theme
 Author: Biagio Raucci
 Author URI: https://www.raucci.net/
 Description: Tema WordPress autonomo per blog letterari. Layout minimal a colonna singola, tipografia EB Garamond, testo giustificato coerente tra home e articolo, header blu con gradiente. Pensato per la lettura lunga. Nessuna dipendenza da temi padre.
-Version: 1.9.0
+Version: 1.11.0
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -1352,4 +1352,92 @@ body.postit-open { overflow: hidden; }
     }
     .postit-text { font-size: 1.05rem; }
     .postit-actions { justify-content: center; }
+}
+
+
+/* =====================================================
+   CONTATORE VISITE nel footer della home (v1.10.0)
+   ===================================================== */
+.visit-counter {
+    margin-top: 1.25rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid var(--diary-rule);
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-family: var(--diary-sans);
+    font-size: 0.78rem;
+    color: var(--diary-text-soft);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+.visit-counter.is-loaded { opacity: 1; }
+
+.visit-item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35rem;
+}
+.visit-label {
+    letter-spacing: 1px;
+    text-transform: uppercase;
+}
+.visit-number {
+    font-family: var(--diary-serif);
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--diary-text);
+    font-variant-numeric: tabular-nums;
+}
+.visit-sep { opacity: 0.4; }
+
+@media (max-width: 420px) {
+    .visit-counter { font-size: 0.72rem; }
+    .visit-number { font-size: 0.95rem; }
+}
+
+
+/* =====================================================
+   FASE LUNARE nelle celle del Planner (v1.11.0)
+   ===================================================== */
+.planner-giorno-icone {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex-shrink: 0;
+}
+
+.planner-luna {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+    cursor: help;
+    opacity: 0.85;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.planner-cell:hover .planner-luna {
+    opacity: 1;
+    transform: scale(1.12);
+}
+
+.moon-icon { display: block; }
+.moon-dark {
+    fill: #39414b;
+    stroke: rgba(0, 0, 0, 0.18);
+    stroke-width: 1;
+}
+.moon-lit { fill: #f0cf7a; }
+
+/* Nel giorno "oggi" la luna è un filo più accesa */
+.planner-oggi .moon-lit { fill: #f5c94f; }
+.planner-oggi .planner-luna { opacity: 1; }
+
+/* Su schermi piccoli l'icona si riduce un poco */
+@media (max-width: 780px) {
+    .planner-luna .moon-icon {
+        width: 13px;
+        height: 13px;
+    }
 }
