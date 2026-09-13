@@ -4,7 +4,7 @@ Theme URI: https://github.com/braucci/diary-theme
 Author: Biagio Raucci
 Author URI: https://www.raucci.net/
 Description: Tema WordPress autonomo per blog letterari. Layout minimal a colonna singola, tipografia EB Garamond, testo giustificato coerente tra home e articolo, header blu con gradiente. Pensato per la lettura lunga. Nessuna dipendenza da temi padre.
-Version: 1.11.0
+Version: 1.12.0
 Requires at least: 6.0
 Tested up to: 6.8
 Requires PHP: 7.4
@@ -1440,4 +1440,139 @@ body.postit-open { overflow: hidden; }
         width: 13px;
         height: 13px;
     }
+}
+
+
+/* =====================================================
+   PAGINA 404 — "Pagina smarrita" (v1.12.0)
+   ===================================================== */
+.error-404 {
+    text-align: center;
+    padding: 1rem 0 2rem;
+}
+
+/* Il grande 404 in filigrana, col titolo sovrapposto */
+.error-404-hero {
+    position: relative;
+    margin-bottom: 1.5rem;
+    padding: 2.5rem 0 1rem;
+}
+.error-404-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -55%);
+    font-family: var(--diary-serif);
+    font-size: clamp(7rem, 22vw, 13rem);
+    font-weight: 700;
+    line-height: 1;
+    color: rgba(47, 106, 163, 0.09);
+    letter-spacing: -0.03em;
+    user-select: none;
+    pointer-events: none;
+    z-index: 0;
+}
+.error-404-title {
+    position: relative;
+    z-index: 1;
+    font-family: var(--diary-serif);
+    font-size: clamp(2rem, 5vw, 2.8rem);
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+/* La frase letteraria */
+.error-404-frase {
+    font-family: var(--diary-serif);
+    font-size: 1.25rem;
+    font-style: italic;
+    line-height: 1.6;
+    color: var(--diary-text-soft);
+    max-width: 34rem;
+    margin: 0 auto 2.25rem;
+    text-align: center !important;
+    hyphens: none;
+}
+
+/* Ricerca */
+.error-404-search {
+    max-width: 30rem;
+    margin: 0 auto 3rem;
+}
+.error-404-search .search-form { justify-content: center; }
+
+/* Articoli suggeriti */
+.error-404-suggeriti {
+    max-width: 34rem;
+    margin: 0 auto;
+    padding-top: 2rem;
+    border-top: 1px solid var(--diary-rule);
+}
+.error-404-sub {
+    font-family: var(--diary-sans);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--diary-text-soft);
+    margin: 0 0 1.25rem;
+}
+.error-404-lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+.error-404-lista li {
+    border-bottom: 1px solid var(--diary-rule);
+}
+.error-404-lista li:last-child { border-bottom: 0; }
+.error-404-lista a {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.85rem 0.4rem;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: background 0.15s ease, padding-left 0.15s ease;
+}
+.error-404-lista a:hover {
+    background: rgba(47, 106, 163, 0.06);
+    padding-left: 0.8rem;
+    text-decoration: none;
+}
+.sugg-title {
+    font-family: var(--diary-serif);
+    font-size: 1.15rem;
+    line-height: 1.25;
+    color: var(--diary-text);
+}
+.error-404-lista a:hover .sugg-title { color: var(--diary-link); }
+.sugg-date {
+    font-family: var(--diary-sans);
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    color: var(--diary-text-soft);
+}
+
+/* Ritorno alla home */
+.error-404-torna {
+    margin-top: 2.5rem;
+}
+.error-404-home {
+    font-family: var(--diary-sans);
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--diary-accent);
+    text-decoration: none;
+}
+.error-404-home:hover { text-decoration: underline; }
+
+@media (max-width: 600px) {
+    .error-404-frase { font-size: 1.1rem; }
+    .sugg-title { font-size: 1.05rem; }
 }
